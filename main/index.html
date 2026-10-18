@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Travel Router</title>
+<style>body{font:17px system-ui;max-width:560px;margin:40px auto;padding:20px;background:#10202b;color:#eef5fa}input,button{box-sizing:border-box;font:inherit;padding:12px;margin:8px 0;width:100%;border-radius:8px;border:1px solid #82939f}button{cursor:pointer;background:#a9e5cf;color:#10202b}small{color:#bbccd8}a{color:#a9e5cf}</style>
+<h1>Travel Router</h1><p>Your devices stay on your personal Wi-Fi. Set the hotel Wi-Fi here when you arrive.</p>
+<p id="status" role="status">Loading…</p>
+<form id="setup"><label for="ssid">Hotel Wi-Fi name</label><input id="ssid" required maxlength="32" autocomplete="off" list="networks"><datalist id="networks"></datalist>
+<button id="scan" type="button">Find nearby networks</button>
+<label for="password">Hotel Wi-Fi password</label><input id="password" type="password" maxlength="63" autocomplete="new-password"><small>Leave blank for an open network. Credentials are saved on this router.</small>
+<button>Save and connect</button></form>
+<p>After connecting, open <a href="http://neverssl.com/" target="_blank" rel="noopener noreferrer">the hotel login page</a> if required. Internet access is confirmed by browsing, not by the connection status below.</p>
+<script>
+const status=document.querySelector('#status');
+async function refresh(){try{const r=await fetch('/api/status');if(!r.ok)throw Error();const s=await r.json();status.textContent=s.connected?'Connected to hotel Wi-Fi. Rejoin your personal Wi-Fi if DNS has not updated.':'Hotel Wi-Fi is disconnected or connecting. Setup remains available.';}catch{status.textContent='Reconnect to your personal Wi-Fi and reload this page.'}}
+document.querySelector('#scan').onclick=async()=>{try{status.textContent='Scanning…';const r=await fetch('/api/scan',{headers:{'X-Router-Setup':'1'}});if(!r.ok)throw Error(await r.text());const names=await r.json();document.querySelector('#networks').replaceChildren(...names.map(name=>{const o=document.createElement('option');o.value=name;return o}));status.textContent='Scan complete. Choose or enter the hotel Wi-Fi name.';}catch(e){status.textContent='Scan unavailable; enter the Wi-Fi name manually.'}};
+document.querySelector('#setup').onsubmit=async e=>{e.preventDefault();try{const r=await fetch('/api/connect',{method:'POST',headers:{'Content-Type':'application/json','X-Router-Setup':'1'},body:JSON.stringify({ssid:document.querySelector('#ssid').value,password:document.querySelector('#password').value})});if(!r.ok)throw Error(await r.text());document.querySelector('#password').value='';status.textContent='Saved. Connecting…';}catch(e){status.textContent=e.message}};
+refresh();setInterval(refresh,6000);
+</script></html>
